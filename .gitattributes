@@ -1,0 +1,3 @@
+*.ipynb linguist-language=python;
+*.handlebars linguist-language=javascript;
+*.html linguist-language=python;
