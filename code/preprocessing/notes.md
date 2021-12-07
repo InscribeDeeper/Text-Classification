@@ -4,7 +4,9 @@ With regular expression and mailparser, the preprocessing mainly parse the struc
 
 The core features are:
 
+- 	Indentify the Structure of the email and extract specific part of email content
 -   Identify previous email reference and separate as different features (up to 2)
+- 	Clean extra symbol, and format the sentences by NLTK word tokenizer
 -   Saved the preprocessed train and test file in local
 -   We generated columns:
     ```python

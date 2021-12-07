@@ -4,13 +4,11 @@
 # ## Package import
 
 import pandas as pd
-import numpy as np
-import os
 from glob import glob
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 import mailparser
 import re
+from nltk.tokenize import word_tokenize
 
 # ## Data Loading
 # - from file into DataFrame
@@ -149,12 +147,15 @@ def structure_parser(string):
 # #### reference_parser
 
 
-def extra_parser(x):
+def tokenizer_parser(x):
     """
-    remove_flag and extra space
+    remove_flag e.g. In article
+    remove extra space in the middle 
+    remove special symbol
     """
     x = re.sub("(?:In article)?.*writes:", "", x, flags=re.S)
-    x = re.sub(" {2,}", " ", x)  # compress space
+    # x = re.sub(" {2,}", " ", x) # compress space
+    x = " ".join(word_tokenize(x, preserve_line=True)).strip()
     return x
 
 
@@ -179,23 +180,21 @@ def reference_parser(string, match_type=2):
 
     # extract reply with out containing >
     reply = " ".join([s for s in string.split("\n") if ">" not in s])
-    reply = extra_parser(reply)
+    reply = tokenizer_parser(reply)
 
     # add "\n" before string to matchign [^>]{1}
     if match_type > 0:
         previous_one = " ".join(re.findall("[^>]{1}>{1}([^>]{1}[\S ]*)\n", "\n" + string))  # matching >
-        previous_one = extra_parser(previous_one)
+        previous_one = tokenizer_parser(previous_one)
 
     if match_type > 1:  # flag reference_two
         previous_two = " ".join(re.findall("[^>]{1}>{2}([^>]{1}[\S ]*)\n", "\n" + string))  # matching >>
-        previous_two = extra_parser(previous_two)
+        previous_two = tokenizer_parser(previous_two)
     # previous_two_more_pt = "[^>]{1}>{2,}([^>]{1}[\S ]*)\n" # matching >> or >>> more
     return reply, previous_one, previous_two
 
 
 # ### main structural_email
-
-
 def structural_email(data, bytedata_parser_threshold=50, reference_parser_match_type=2):
     """
     This is a parser pipeline, parser order matters.
@@ -205,7 +204,7 @@ def structural_email(data, bytedata_parser_threshold=50, reference_parser_match_
     4. body_no_email => parse and remove binary data like BMP or picture from body => body_no_binary_no_email
     5. body_no_binary_no_email => separate email reference and reply => reply, previous_one, previous_two
     
-    @param data: data text dataframe series including all the training set or test set
+    @param data: data text series including all the training set or test set
     @return: structural information
     """
     print("Preprocessing for unstructure email...")
@@ -213,12 +212,16 @@ def structural_email(data, bytedata_parser_threshold=50, reference_parser_match_
     body_info = []
     others_info = []
     for string in tqdm(data):
+        # structure parsers
         header, body, others = structure_parser(string)
         body = typo_parser(body)
         body_no_email, emails = email_address_parser(body)
         body_no_binary_no_email, bytedata = bytedata_parser(body_no_email, threshold=bytedata_parser_threshold)
+
+        # main parser
         reply, previous_one, previous_two = reference_parser(body_no_binary_no_email, match_type=reference_parser_match_type)
 
+        # append data in loops
         header_info.append(header)
         body_info.append([reply, previous_one, previous_two])
         others_info.append(others + [emails] + [bytedata])
