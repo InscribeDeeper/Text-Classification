@@ -1,1 +1,4 @@
 data/*
+**/*.state
+**/*.npy
+**/*.id2word
