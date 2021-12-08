@@ -1,8 +1,9 @@
-from nltk.cluster import KMeansClusterer, cosine_distance
+from nltk.cluster import KMeansClusterer # , cosine_distance will get nan when u v are zero
+from scipy.spatial.distance import cosine
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 # from sklearn.metrics import precision_recall_fscore_support, classification_report, roc_curve, auc, precision_recall_curve
-
+from sklearn.cluster import KMeans
 from gensim.utils import tokenize
 import pyLDAvis
 import pyLDAvis.gensim
@@ -32,7 +33,7 @@ def link_group_to_label(train_label, train_pred, num_topics=100):
     full.loc[:, 'no_group'] = 0.1  # the minimum is 1
     merge_full = full.combine_first(confusion).fillna(0)
     group_to_label = merge_full.idxmax(axis=1)
-    
+
     ## print out mapping
     print("Group to label mapping: ")
     for idx, t in enumerate(group_to_label):
@@ -93,15 +94,19 @@ def fit_clustering_model(dtm_train, train_label, num_clusters, metric='Cosine', 
     '''
 
     '''
-    assert metric in ['Cosine']
+    assert metric in ['Cosine', 'L2']
     assert model in ['KMeans']
 
     # model training
     if model == 'KMeans':
         if metric == 'Cosine':
-            # normalise has to be False!
-            clusterer = KMeansClusterer(num_clusters, cosine_distance, normalise=False, repeats=repeats, avoid_empty_clusters=True)
+            # normalise should be true!
+            # clusterer = KMeansClusterer(num_clusters, cosine_distance, normalise=False, repeats=repeats, avoid_empty_clusters=True)
+            clusterer = KMeansClusterer(num_clusters, cosine, normalise=True, repeats=repeats, avoid_empty_clusters=True)
             train_cluster_pred = clusterer.cluster(dtm_train, assign_clusters=True)
+        elif metric == 'L2':
+            clusterer = KMeans(n_clusters=num_clusters, n_init=repeats).fit(dtm_train)
+            train_cluster_pred = clusterer.labels_.tolist()
 
     elif model == 'GMM':
         pass
@@ -111,12 +116,15 @@ def fit_clustering_model(dtm_train, train_label, num_clusters, metric='Cosine', 
         # train_cluster_pred = clusterer.predict(dtm_train)
 
     # Maping clusters into labels
-    clusters_to_labels = link_group_to_label(train_label, train_cluster_pred)
+    clusters_to_labels = link_group_to_label(train_label, train_cluster_pred, num_clusters)
     return clusterer, clusters_to_labels
 
 
 def pred_clustering_model(dtm_test, clusterer, clusters_to_labels):
-    test_cluster_pred = [clusterer.classify(v) for v in dtm_test]
+    try:
+        test_cluster_pred = clusterer.predict(dtm_test)  # for sklearn clustering with L2
+    except Exception:
+        test_cluster_pred = [clusterer.classify(v) for v in dtm_test]  # for nltk clustering with Cosine similiarity
     predict = [clusters_to_labels[i] for i in test_cluster_pred]
     return predict
 
@@ -146,11 +154,11 @@ def fit_topic_model(docs, num_topics=100, save_name='lda_gensim_model'):
     lda = LdaModel(sparse_corpus, num_topics=num_topics, minimum_probability=0.0001, dtype=np.float64)
     if save_name is not None:
         lda.save(save_name)
-        lda = LdaModel.load(save_name)
+        lda = LdaModel.load(save_name)  # index 会变小吗
     return lda, vocabulary
 
 
-def pred_topic_model(lda, docs, vocabulary=None):
+def pred_topic_model(lda, docs, vocabulary):
     assert vocabulary is not None
     _, sparse_corpus = transform_lda_corpus(docs, vocabulary=vocabulary)
     pred = lda[sparse_corpus]
@@ -183,5 +191,6 @@ def visualize_LDA_model(docs, voc, lda):
     panel = pyLDAvis.gensim.prepare(lda, corpus=sparse_corpus, dictionary=voc, mds='tsne')
     return panel
 
+
 def load_gensim_LDA_model(save_name='lda_gensim_model'):
-    return LdaModel.load(save_name)
+    return LdaModel.load(save_name)  # key 会少一个
