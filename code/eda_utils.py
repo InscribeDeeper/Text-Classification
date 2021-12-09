@@ -1,24 +1,18 @@
 from nltk.corpus import stopwords
 # nltk.download('stopwords')
 from nltk.tokenize import word_tokenize
-
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from wordcloud import WordCloud
 import numpy as np
 from tensorflow.keras.preprocessing.text import Tokenizer
 import pandas as pd
 import matplotlib.pyplot as plt
-from tensorflow.keras.layers import Embedding, Conv1D, MaxPooling1D, Input, Flatten, Concatenate
-from tensorflow.keras.models import Model
-import gensim.downloader as api
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-import re
-from gensim.models import word2vec
-# from gensim.parsing.preprocessing import remove_stopwords
+from gensim.parsing.preprocessing import remove_stopwords
 
-def remove_stopwords(sent, stopwords):
-    tokens = word_tokenize(sent)
-    sent = " ".join([word for word in tokens if not word in stopwords])
-    return sent
+# def remove_stopwords(sent, stopwords):
+#     tokens = word_tokenize(sent)
+#     sent = " ".join([word for word in tokens if not word in stopwords])
+#     return sent
 
 
 def eda_MAX_NB_WORDS(corpus, remove_stop=False, ratio=0.95, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', char_level=False):
@@ -142,5 +136,77 @@ def eda_WORD_CLOUD(corpus):
 # eda_WORD_CLOUD(corpus)
 
 
+def upsampling_train(train, seeds=10):
+    group_size = train.groupby('label').size()
+    mean_size = int(group_size.mean())
+    small_groups = group_size[group_size < mean_size].index.tolist()
+
+    train_small_groups = train[train['label'].isin(small_groups)].groupby('label').sample(n=mean_size, replace=True, random_state=seeds)
+    train_large_groups = train[~train['label'].isin(small_groups)]
+    upsampling_train = pd.concat([train_small_groups, train_large_groups], axis=0)
+    upsampling_group_size = upsampling_train.groupby('label').size()
+    upsampling_info = pd.concat([group_size, upsampling_group_size, upsampling_group_size - group_size], axis=1)
+    upsampling_info.columns = ['before_upsampling', 'after_upsampling', 'increase']
+
+    train = upsampling_train
+    return train, upsampling_info
 
 
+####################################
+### columns selection
+####################################
+
+def load_data(train_path='../data/structured_train.json', test_path='../data/structured_test.json', sample50=False, \
+                 select_cols=["global_index", "doc_path", "label", "reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization", "contained_emails", "long_string", "text", "error_message"]):
+
+    train = pd.read_json(train_path)
+    test = pd.read_json(test_path)
+
+    if sample50:
+        seeds = 2021
+        train.sample(frac=1, random_state=seeds).reset_index(drop=True)
+        test.sample(frac=1, random_state=seeds).reset_index(drop=True)
+
+    print("\nmay use cols: \n", select_cols)
+    train = train[select_cols]
+    train[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]] = train[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]].astype(str)
+
+    test = test[select_cols]
+    test[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]] = test[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]].astype(str)
+
+    return train, test
+
+
+####################################
+### string normalized
+####################################
+
+
+def normal_string(x):
+    x = remove_stopwords(x)
+    #     x = " ".join(preprocess_string(x))
+    x = " ".join(word_tokenize(x, preserve_line=False)).strip()
+    return x
+
+
+####################################
+### data augmentation
+####################################
+def train_augmentation(train, select_comb=[['text'], ['reply', 'reference_one']]):
+    if select_comb is None:
+        return train['text'], train['label']
+
+    dt = train.copy()
+    train_text = pd.DataFrame()
+    train_label = pd.DataFrame()
+    for idx, comb in enumerate(select_comb):
+        print(f"combination {idx+1} train: ", comb)
+        dt = train[comb[0]]
+        for col in comb[1:]:
+            dt = dt + ' ' + train[col]
+        train_text = pd.concat([train_text, dt], axis=0)
+        train_label = pd.concat([train_label, train['label']], axis=0)
+
+    train_text = train_text.reset_index(drop=True)[0]
+    train_label = train_label.reset_index(drop=True)[0]
+    return train_text, train_label

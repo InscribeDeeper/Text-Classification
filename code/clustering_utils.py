@@ -1,4 +1,4 @@
-from nltk.cluster import KMeansClusterer, cosine_distance # will get nan when u v are zero?
+from nltk.cluster import KMeansClusterer, cosine_distance  # will get nan when u v are zero?
 # from scipy.spatial.distance import cosine
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
@@ -60,6 +60,7 @@ def count_vectorizer(train_text, test_text, min_df=3, max_df=0.95):
 
 def tfidf_vectorizer(train_text, test_text, min_df=3, max_df=0.95):
     en_stopwords = stopwords.words('english')
+    # sublinear_tf=True,
     tfidf_vect = TfidfVectorizer(stop_words=en_stopwords, token_pattern=r'\b\w[\']?\w*\b', norm='l2', min_df=min_df, max_df=max_df)
     dtm_train = tfidf_vect.fit_transform(train_text)
     dtm_test = tfidf_vect.transform(test_text)
@@ -193,3 +194,4 @@ def visualize_LDA_model(docs, voc, lda):
 
 def load_gensim_LDA_model(save_name='lda_gensim_model'):
     return LdaModel.load(save_name)  # key 会少一个
+
