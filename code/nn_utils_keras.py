@@ -1,17 +1,13 @@
 # encoding=utf-8
-from tensorflow.keras.utils import model_to_dot, plot_model
+from tensorflow.keras.utils import model_to_dot
 from IPython.display import SVG
-
-from logging import exception
 import numpy as np
 from tensorflow.keras.preprocessing.text import Tokenizer
-import pandas as pd
 import matplotlib.pyplot as plt
 from tensorflow.keras.layers import Embedding, Conv1D, MaxPooling1D, Input, Flatten, Concatenate
 from tensorflow.keras.models import Model
 import gensim.downloader as api
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-import re
 from gensim.models import word2vec
 
 
@@ -251,20 +247,3 @@ def cnn_model_l2(
 def visual_textCNN(model):
     print(model.summary())
     return SVG(model_to_dot(model, dpi=70, show_shapes=True, show_layer_names=True).create(prog='dot', format='svg'))
-
-
-def auc(y_true, y_pred):
-    auc = tf.metrics.auc(y_true, y_pred)[1]
-    K.get_session().run(tf.local_variables_initializer())
-    return auc
-
-
-def Best_model_report(grid_result, to_file='GV_result.xlsx'):
-    GV_result = pd.DataFrame(grid_result.cv_results_)
-    GV_result.to_excel(to_file)
-    #     y_pred = grid_result.predict(x_test)
-    #     y_test_one=np.argmax(y_test,axis=1)
-    #     cm = confusion_matrix(y_test_one, y_pred)
-    #     print('confusion matrix:\n', cm)
-    #     print('classification report:\n', classification_report(y_test_one, y_pred))
-    return GV_result

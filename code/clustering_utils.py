@@ -1,19 +1,10 @@
 from nltk.cluster import KMeansClusterer, cosine_distance  # will get nan when u v are zero?
-# from scipy.spatial.distance import cosine
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-# from sklearn.metrics import precision_recall_fscore_support, classification_report, roc_curve, auc, precision_recall_curve
 from sklearn.cluster import KMeans
 from gensim.utils import tokenize
 import pyLDAvis
-import pyLDAvis.gensim
 from gensim.models import LdaModel
-from gensim.test.utils import common_texts
 from gensim.corpora.dictionary import Dictionary
-from nltk.corpus import stopwords
-# nltk.download('stopwords')
-from sklearn.decomposition import TruncatedSVD
-from sklearn.manifold import TSNE
 import pandas as pd
 import numpy as np
 
@@ -45,50 +36,6 @@ def link_group_to_label(train_label, train_pred, num_topics=100):
 ################################################
 ## Clustering tools
 ################################################
-
-
-def count_vectorizer(train_text, test_text, min_df=3, max_df=0.95):
-    en_stopwords = stopwords.words('english')
-    count_vect = CountVectorizer(stop_words=en_stopwords, token_pattern=r'\b\w[\']?\w*\b', min_df=min_df, max_df=max_df)
-    dtm_train = count_vect.fit_transform(train_text)
-    dtm_test = count_vect.transform(test_text)
-
-    word_to_idx = count_vect.vocabulary_
-    print("num of words:", len(word_to_idx))
-    return dtm_train, dtm_test, word_to_idx, count_vect
-
-
-def tfidf_vectorizer(train_text, test_text, min_df=3, max_df=0.95):
-    en_stopwords = stopwords.words('english')
-    # sublinear_tf=True,
-    tfidf_vect = TfidfVectorizer(stop_words=en_stopwords, token_pattern=r'\b\w[\']?\w*\b', norm='l2', min_df=min_df, max_df=max_df)
-    dtm_train = tfidf_vect.fit_transform(train_text)
-    dtm_test = tfidf_vect.transform(test_text)
-
-    word_to_idx = tfidf_vect.vocabulary_
-    print("num of words:", len(word_to_idx))
-    return dtm_train, dtm_test, word_to_idx, tfidf_vect
-
-
-def dimension_reduction(dtm, method='svd', out_dim=200, verbose=0):
-    transform_mapper = None
-
-    if method == 'svd':
-        print("Dimension reduction with truncate SVD:")
-        print("   input columns with ", dtm.shape[1])
-        print("   output columns with ", out_dim)
-
-        transform_mapper = TruncatedSVD(n_components=out_dim)
-        dtm = transform_mapper.fit_transform(dtm)
-        if verbose > 0:
-            print("singular_values_: ", transform_mapper.singular_values_)
-
-    elif method == 'tsne':
-        print("Notes: T-SNE is only for visualization, not preprocessing")
-        assert out_dim < 3, "out_dim should less than 3 with t-sne, this is for visualization"
-        # transform_mapper = TSNE(n_components=out_dim, metric='cosine')
-        dtm = TSNE(n_components=out_dim).fit_transform(dtm)
-    return dtm, transform_mapper
 
 
 def fit_clustering_model(dtm_train, train_label, num_clusters, metric='Cosine', model='KMeans', repeats=20):
@@ -194,4 +141,3 @@ def visualize_LDA_model(docs, voc, lda):
 
 def load_gensim_LDA_model(save_name='lda_gensim_model'):
     return LdaModel.load(save_name)  # key 会少一个
-
