@@ -1,5 +1,5 @@
-from nltk.cluster import KMeansClusterer # , cosine_distance will get nan when u v are zero
-from scipy.spatial.distance import cosine
+from nltk.cluster import KMeansClusterer, cosine_distance # will get nan when u v are zero?
+# from scipy.spatial.distance import cosine
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 # from sklearn.metrics import precision_recall_fscore_support, classification_report, roc_curve, auc, precision_recall_curve
@@ -101,8 +101,7 @@ def fit_clustering_model(dtm_train, train_label, num_clusters, metric='Cosine', 
     if model == 'KMeans':
         if metric == 'Cosine':
             # normalise should be true!
-            # clusterer = KMeansClusterer(num_clusters, cosine_distance, normalise=False, repeats=repeats, avoid_empty_clusters=True)
-            clusterer = KMeansClusterer(num_clusters, cosine, normalise=True, repeats=repeats, avoid_empty_clusters=True)
+            clusterer = KMeansClusterer(num_clusters, cosine_distance, normalise=True, repeats=repeats, avoid_empty_clusters=True)
             train_cluster_pred = clusterer.cluster(dtm_train, assign_clusters=True)
         elif metric == 'L2':
             clusterer = KMeans(n_clusters=num_clusters, n_init=repeats).fit(dtm_train)
