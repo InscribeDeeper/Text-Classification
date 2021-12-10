@@ -22,7 +22,7 @@ except ImportError:
 # Put everything together as a function. This is for pretrained word vectors
 
 
-def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, device=glovar.device_type, low_RAM_inner_batch=False):
+def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, device=glovar.device_type, low_RAM_inner_batch=False, embed_type=2):
     '''
     return
         token_embeddings, input_ids, output_embedding
@@ -51,29 +51,55 @@ def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, 
             for batch_input_ids, batch_attention_masks in tqdm(list(zip(input_ids, attention_masks))):
                 # for batch_input_ids, batch_attention_masks in (list(zip(input_ids, attention_masks))):
                 outputs = bert_model(batch_input_ids.to(device), batch_attention_masks.to(device))
-                hidden_states = outputs[2]
+                ## in output
+                # 0.last_hidden_state
+                # 1.pooler_output
+                # 2.hidden_states
+                # 3.attentions
 
-                # get the last four layers
-                token_embeddings = torch.stack(hidden_states[-4:], dim=0)
-                token_embeddings = token_embeddings.permute(1, 2, 0, 3)
-                token_embeddings = token_embeddings.mean(axis=2)
+                ## dimension
+                # {'attentions': 12 layer * torch.Size([1, 12, 100, 100]),
+                # 'hidden_states': (12 layer + 1 output layer) *  torch.Size([1, 100, 768]),
+                # 'last_hidden_state': torch.Size([100, 768]),
+                # 'pooler_output': torch.Size([768])}
 
-                output_embedding.append((token_embeddings.cpu().numpy()) * (np.tile(batch_attention_masks, (768, 1)).T))
-        # output_embedding = torch.cat(output_embedding, dim=0)
-        output_embedding = np.concatenate(output_embedding, axis=0)
+                if embed_type == 1:  # to get contextual embedding for each words
+                    hidden_states = outputs[2]
+                    token_embeddings = torch.stack(hidden_states[-4:], dim=0)  # get the last four layers
+                    token_embeddings = token_embeddings.permute(1, 2, 0, 3)
+                    token_embeddings = token_embeddings.mean(axis=2)
+                    token_embeddings = (token_embeddings.cpu().numpy()) * (torch.tile(batch_attention_masks, (768, 1)).T)
+                elif embed_type == 2:
+                    token_embeddings = outputs.pooler_output
+                elif embed_type == 3:
+                    token_embeddings = outputs.last_hidden_state[0][0]  # [CLS] tokens
+                output_embedding.append(token_embeddings.cpu().numpy())
 
         input_ids = torch.cat(input_ids, dim=0)  # Convert the lists into tensors.
+
+        if embed_type == 2:
+            output_embedding = np.concatenate(output_embedding, axis=0)
+        else:
+            output_embedding = np.array(output_embedding)
+
     else:  # high RAM outer batch
         with torch.no_grad():
             # Convert the lists into tensors.
             input_ids = torch.cat(input_ids, dim=0)
             attention_masks = torch.cat(attention_masks, dim=0)
             outputs = bert_model(input_ids.to(device), attention_masks.to(device))
+
+        if embed_type == 1:
             hidden_states = outputs[2]
-        # get the last four layers
-        token_embeddings = torch.stack(hidden_states[-4:], dim=0)
-        token_embeddings = token_embeddings.permute(1, 2, 0, 3)
-        output_embedding = token_embeddings.mean(axis=2)
+            token_embeddings = torch.stack(hidden_states[-4:], dim=0)
+            token_embeddings = token_embeddings.permute(1, 2, 0, 3)
+            token_embeddings = token_embeddings.mean(axis=2)
+        elif embed_type == 2:
+            token_embeddings = outputs.pooler_output
+        elif embed_type == 3:
+            token_embeddings = outputs.last_hidden_state[0][0]  # [CLS] tokens
+
+        output_embedding = token_embeddings.cpu().numpy()
 
     return input_ids, output_embedding
 
@@ -355,8 +381,6 @@ def flat_accuracy(preds, labels):
     pred_flat = np.argmax(preds, axis=1).flatten()
     labels_flat = labels.flatten()
     return np.sum(pred_flat == labels_flat) / len(labels_flat)
-
-    # chmod -R 777 Conf_Call/
 
 
 def re_softmax(y, axis=1):

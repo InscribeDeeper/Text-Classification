@@ -17,6 +17,8 @@
 
 - LR
     - 可以并行
+
+
     
 - RF
     - 结果怎样
@@ -62,17 +64,25 @@
 - RNNs太慢了, 不适合这个case, 但是可能会有所改善
 
 - BERT
-    - 
-
+    - 核心是需要将文本分离, 那样的话, 重要信息 才能被 capture, 因为bert的参数设置的是100, 只能前100个单词被捕捉
+    - 那这里就突显出来分离的必要性了.
+    - 基于TFIDF 或者 CNN 都是BOW 不考虑顺序的 
+    - 但是 BERT 是考虑句子意思的, 所以必须要分离
+    - 因为考虑 信息不充分, 所以继续从原有数据中 提取特征, 选择 比较多的
+    - 因为BERT 在 PYTORCH 支持更好, 所以BERT 相关的model都在pytorch 展开
+    - 考虑 distill BERT? 
 
 - 整合所有数据为 html
 
 
-- 这是啥意思? sub class?
-Micro average (averaging the total true positives, false negatives and
-    false positives) is only shown for multi-label or multi-class
-    with a subset of classes
+- 后续改进
+    - 使用 成熟的工具 像: Vowpal Wabbit, interactive machine learning library. 
+    - 特征工程, 怎么将更多的信息 非线性的 组合起来, 并且让model找到
+        - TFIDF的信息已经被用完了 准确率仍然不够
+        - 现在并不是复杂度不够, 需要降低复杂度, 做特征工程 降低维度!! 而是 信息太少了, 噪音太多了. 
+        - 目前试用了 subject, 之后可以提取 from to 之类的 social network 的信息
+    - rule based, 直接收集对应的词库
 
-因为考虑 信息不充分, 所以继续从原有数据中 提取特征, 选择 比较多的
 
-因为BERT 在 PYTORCH 支持更好, 所以BERT 相关的model都在pytorch 展开
+
+
