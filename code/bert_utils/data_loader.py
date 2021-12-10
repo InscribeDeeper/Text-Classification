@@ -4,10 +4,12 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split  # , StratifiedKFold
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+
+
 ##############################################################################################################
 # Training option 1
 ##############################################################################################################
-def BERT_data_loader(sentences_encoding, input_ids, one_hot_labels, batch_size=16, random_state=1234, test_size=0.1, testing=False):
+def data_loader_BERT(sentences_encoding, input_ids, one_hot_labels, batch_size=None, random_state=1234, test_size=None, testing=False):
     # Split
     one_hot_labels = torch.tensor(one_hot_labels, dtype=torch.int32)
 
@@ -39,3 +41,4 @@ def BERT_data_loader(sentences_encoding, input_ids, one_hot_labels, batch_size=1
         test_data = TensorDataset(test_inputs, input_ids, test_labels)
         test_dataloader = DataLoader(test_data, sampler=None, batch_size=batch_size)
         return test_dataloader, None
+

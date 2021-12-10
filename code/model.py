@@ -19,7 +19,7 @@ class lstm_cnn_o1(nn.Module):
         self.convs = nn.ModuleList([nn.Conv2d(1, self.num_filters, (f, 2 * self.lstm_units)) for f in self.kernel_sizes])
         self.dropout = nn.Dropout(p=dropout_rate)
         # self.fc = nn.Sequential(nn.Linear(len(kernel_sizes) * self.num_filters, 1), nn.Sigmoid())
-        self.fc = nn.Sequential(nn.Linear(len(kernel_sizes) * self.num_filters, 1))
+        self.fc = nn.Sequential(nn.Linear(len(kernel_sizes) * self.num_filters, self.num_classes))
 
     def forward(self, x):
         x, _ = self.lstm(x)  # (N, seq_len, 2*lstm_units)

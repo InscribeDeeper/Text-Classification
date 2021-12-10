@@ -2,7 +2,8 @@ import datetime
 import torch
 import numpy as np
 import sys
-from torch.nn import BCEWithLogitsLoss  # , BCELoss
+from torch.nn.functional import softmax
+from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss  # , BCELoss
 # from sklearn.metrics import multilabel_confusion_matrix
 # from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score, precision_recall_fscore_support,
 from sklearn.metrics import roc_auc_score, f1_score, precision_score, recall_score, accuracy_score  # average_precision_score
@@ -92,9 +93,9 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
 
     if class_weight is not None:
         pos_weight = torch.tensor(class_weight).to(device)
-        criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
+        criterion = CrossEntropyLoss(pos_weight=pos_weight)
     else:
-        criterion = BCEWithLogitsLoss()
+        criterion = CrossEntropyLoss()
 
     for batch in dataloader:
         b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
@@ -102,13 +103,15 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
         b_labels = batch[2].to(device)  # [2]: labels
         with torch.no_grad():
             b_logits = model(b_input_encoding)
-            val_loss = criterion(b_logits.view(-1, num_labels), b_labels.type_as(b_logits).view(-1, num_labels))  # convert labels to float for calculation
+            b_prob = softmax(b_logits)
+            # val_loss = criterion(b_prob.view(-1, num_labels), b_labels.type_as(b_prob).view(-1, num_labels))  # convert labels to float for calculation
+            val_loss = criterion(b_prob, b_labels.type_as(b_prob))  # convert labels to float for calculation
             total_eval_loss += val_loss.item()
 
             # # save result
             b_labels = b_labels.to('cpu').numpy()
-            b_logits = b_logits.to('cpu').numpy()
-            pred_label = sigmoid(b_logits)
+            b_prob = b_prob.to('cpu').numpy()
+            pred_label = b_prob
 
             # logit_preds.append(b_logits.reshape(-1,num_labels))
             # true_labels.append(b_labels.reshape(-1,num_labels))
@@ -131,10 +134,10 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
         # true_bools = np.argmax(true_labels, axis=1)
         auc_score = roc_auc_score(true_labels, pred_labels)  # for o1, change the roc_auc parameter
         pred_label_ = np.where(pred_labels > 0.5, 1, 0)
-        precison = precision_score(true_labels, pred_label_)
-        recall = recall_score(true_labels, pred_label_)
+        precison = precision_score(true_labels, pred_label_, average='macro')
+        recall = recall_score(true_labels, pred_label_, average='macro')
         acc = accuracy_score(true_labels, pred_label_)
-        f1 = f1_score(true_labels, pred_label_)
+        f1 = f1_score(true_labels, pred_label_, average='macro')
         # print("AUC Score : %f" % auc_score)
     else:
         pass
@@ -201,9 +204,9 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
 
     if class_weight is not None:
         pos_weight = torch.tensor(class_weight).to(device)
-        criterion = BCEWithLogitsLoss(pos_weight=pos_weight)
+        criterion = CrossEntropyLoss(pos_weight=pos_weight)
     else:
-        criterion = BCEWithLogitsLoss()
+        criterion = CrossEntropyLoss()
 
     # For each epoch...
     for epoch_i in range(0, epochs):
@@ -230,7 +233,9 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
             model.zero_grad()
 
             b_logits = model(b_input_encoding)
-            loss = criterion(b_logits.view(-1, num_labels), b_labels.type_as(b_logits).view(-1, num_labels))  # convert labels to float for calculation
+            b_prob = softmax(b_logits)
+            loss = criterion(b_prob, b_labels.type_as(b_prob))  # convert labels to float for calculation
+            # loss = criterion(b_prob.view(-1, num_labels), b_labels.type_as(b_prob).view(-1, num_labels))  # convert labels to float for calculation
 
             total_train_loss += loss.item()
             loss.backward()
