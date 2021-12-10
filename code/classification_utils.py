@@ -15,7 +15,7 @@ def evaluation_report(y_test, pred, labels=None):
 
 
 def roc_auc(y_test, y_prob):
-    roc_auc = metrics.roc_auc_score(y_test, y_prob, labels=y_test.unique(), multi_class='ovr', average='macro')
+    roc_auc = metrics.roc_auc_score(y_test, y_prob, multi_class='ovr', average='macro')
     print("roc_auc: ", roc_auc)
 
 

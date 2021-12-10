@@ -4,3 +4,5 @@ data/*
 **/*.id2word
 **/*testBest*
 *.h5
+*.xlsx
+*.csv

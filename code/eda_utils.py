@@ -1,6 +1,6 @@
 from nltk.corpus import stopwords
 # nltk.download('stopwords')
-from nltk.tokenize import word_tokenize
+
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from wordcloud import WordCloud
 import numpy as np
@@ -156,7 +156,7 @@ def upsampling_train(train, seeds=10):
 ### columns selection
 ####################################
 
-def load_data(train_path='../data/structured_train.json', test_path='../data/structured_test.json', sample50=False, \
+def load_data(only_stem_voc=False, train_path='../data/structured_train.json', test_path='../data/structured_test.json', sample50=False, \
                  select_cols=["global_index", "doc_path", "label", "reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization", "contained_emails", "long_string", "text", "error_message"]):
 
     train = pd.read_json(train_path)
@@ -169,24 +169,17 @@ def load_data(train_path='../data/structured_train.json', test_path='../data/str
 
     print("\nmay use cols: \n", select_cols)
     train = train[select_cols]
-    train[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]] = train[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]].astype(str)
+    train[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]] = train[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]].astype(str).fillna('')
 
     test = test[select_cols]
-    test[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]] = test[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]].astype(str)
+    test[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]] = test[["reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization"]].astype(str).fillna('')
+
+    if only_stem_voc:
+        stem_train, stem_test = load_stem_voc()
+        train['text'] = stem_train
+        test['text'] = stem_test
 
     return train, test
-
-
-####################################
-### string normalized
-####################################
-
-
-def normal_string(x):
-    x = remove_stopwords(x)
-    #     x = " ".join(preprocess_string(x))
-    x = " ".join(word_tokenize(x, preserve_line=False)).strip()
-    return x
 
 
 ####################################
@@ -210,3 +203,9 @@ def train_augmentation(train, select_comb=[['text'], ['reply', 'reference_one']]
     train_text = train_text.reset_index(drop=True)[0]
     train_label = train_label.reset_index(drop=True)[0]
     return train_text, train_label
+
+
+def load_stem_voc():
+    stem_test = pd.read_csv("stem_voc_test.csv")['text'].apply(lambda x: " ".join(eval(x)))
+    stem_train = pd.read_csv("stem_voc_train.csv")['text'].apply(lambda x: " ".join(eval(x)))
+    return stem_train, stem_test
