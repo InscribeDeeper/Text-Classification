@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import sys
 from torch.nn.functional import softmax
-from torch.nn import CrossEntropyLoss  
+from torch.nn import CrossEntropyLoss
 # from sklearn.metrics import multilabel_confusion_matrix
 # from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score, precision_recall_fscore_support,
 from sklearn.metrics import roc_auc_score, f1_score, precision_score, recall_score, accuracy_score  # average_precision_score
@@ -30,6 +30,8 @@ def setup_seed(seed):
     torch.backends.cudnn.deterministic = True
 
     return None
+
+
 # 设置随机数种子
 # setup_seed(1234)
 
@@ -163,27 +165,25 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
     # Flatten outputs
     pred_labels = np.vstack(pred_labels)
     true_labels = np.vstack(true_labels)
-    print('pred_labels', pred_labels.shape)
-    print('true_labels', true_labels.shape)
+    # print('pred_labels', pred_labels.shape)
+    # print('true_labels', true_labels.shape)
     avg_val_loss = total_eval_loss / len(dataloader)
 
-    if task == 'eval':
-        # pred_binary_prob = re_softmax(pred_labels)[:, 1]
-        # true_bools = np.argmax(true_labels, axis=1)
-        auc_score = roc_auc_score(true_labels, pred_labels)  # for o1, change the roc_auc parameter
-        pred_label_ = np.where(pred_labels > 0.5, 1, 0)
-        precison = precision_score(true_labels, pred_label_, average='macro')
-        recall = recall_score(true_labels, pred_label_, average='macro')
-        acc = accuracy_score(true_labels, pred_label_)
-        f1 = f1_score(true_labels, pred_label_, average='macro')
-        # print("AUC Score : %f" % auc_score)
-    else:
-        pass
+    pred_sparse = np.where(pred_labels > 0.5, 1, 0) if num_labels == 2 else np.argmax(pred_labels, axis=1)
+    true_sparse = np.where(true_labels > 0.5, 1, 0) if num_labels == 2 else np.argmax(true_labels, axis=1)
+
+    ## metrics
+    auc_score = roc_auc_score(true_sparse, pred_sparse)
+    precison = precision_score(true_sparse, pred_sparse, average='macro')
+    recall = recall_score(true_sparse, pred_sparse, average='macro')
+    acc = accuracy_score(true_sparse, pred_sparse)
+    f1 = f1_score(true_sparse, pred_sparse, average='macro')
+    # print("AUC Score : %f" % auc_score)
 
     return tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1
 
 
-def train_multi_label_model(model, num_labels, label_cols, train_dataloader, validation_dataloader, optimizer=None, scheduler=None, epochs=10, class_weight=None, patience=3, model_path='./saved_models'):
+def train_multi_label_model(model, num_labels, label_cols, train_dataloader, validation_dataloader, optimizer=None, scheduler=None, epochs=10, class_weight=None, patience=3, model_path='./saved_models', verbose=0):
     """
     Below is our training loop. There's a lot going on, but fundamentally for each pass in our loop we have a trianing phase and a validation phase. At each pass we need to:
 
@@ -262,7 +262,8 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
         for step, batch in enumerate(train_dataloader):
             if step % 40 == 0 and not step == 0:
                 elapsed = format_time(time.time() - t0)
-                print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
+                if verbose>1:
+                    print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
 
             b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
             # b_input_ids = batch[1].to(device)  # [1]: input sentence ids
@@ -283,36 +284,33 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
             if scheduler is not None:
                 scheduler.step()
 
-        avg_train_loss = total_train_loss / len(train_dataloader)
         training_time = format_time(time.time() - t0)
 
-        print("")
-        print("  Average training loss: {0:.2f}".format(avg_train_loss))
-        print("  Training epcoh took: {:}".format(training_time))
+        # print("  Training epcoh took: {:}".format(training_time))
 
         # ========================================
-        #               Validation
+        #               Collection train and validation information
         # ========================================
-        # After the completion of each training epoch, measure our performance on
-        # our validation set.
-
-        print("")
-        print("Performance on training...")
+        # print("Performance on training...")
         model.eval()
-        tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1 = model_eval(model, train_dataloader, num_labels, class_weight=None)
-        print("    Epoch {0}\t Train Loss: {1:.4f}\t Train Loss v2 {2:.4f}\t train Acc: {3:.4f}\t train F1: {4:.4f}\t AUC: {5:.4f}\t precision: {6:.4f}\t recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, acc, f1, auc_score, precison, recall))
+        tokenized_texts, pred_labels, true_labels, avg_train_loss, auc_score, precison, recall, train_acc, f1 = model_eval(model, train_dataloader, num_labels, class_weight=None)
+        
+        print("    Epoch {0}\t Train Loss: {1:.4f}\t Train avg Loss {2:.4f}\t Train Acc: {3:.4f}\t Train F1: {4:.4f}\t Train AUC: {5:.4f}\t Train precision: {6:.4f}\t Train recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, train_acc, f1, auc_score, precison, recall))
 
-        print("Running Validation...")
+        # print("Running Validation...")
         t0 = time.time()
         model.eval()
         tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1 = model_eval(model, validation_dataloader, num_labels, class_weight=None)
 
-        print("    Epoch {0}\t Train Loss: {1:.4f}\t Val Loss {2:.4f}\t Val Acc: {3:.4f}\t Val F1: {4:.4f}\t AUC: {5:.4f}\t precision: {6:.4f}\t recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, acc, f1, auc_score, precison, recall))
+        print("    Epoch {0}\t Val Loss: {1:.4f}\t Val avg Loss {2:.4f}\t Val Acc: {3:.4f}\t Val F1: {4:.4f}\t Val AUC: {5:.4f}\t Val precision: {6:.4f}\t Val recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, acc, f1, auc_score, precison, recall))
         validation_time = format_time(time.time() - t0)
         # Record all statistics from this epoch.
-        training_stats.append({'epoch': epoch_i + 1, 'Training Loss': avg_train_loss, 'Valid. Loss': avg_val_loss, 'Valid. Accur.': acc, 'Best F1': f1, 'AUC': auc_score, 'precison': precison, 'recall': recall, 'Best epoch': best_epoch, 'Training Time': training_time, 'Validation Time': validation_time})
+        training_stats.append({'epoch': epoch_i + 1, 'train_loss': avg_train_loss, 'train_acc': train_acc, 'val_loss': avg_val_loss, 'val_acc': acc, 'val F1 macro': f1, 'val AUC': auc_score, 'val precison': precison, 'val recall': recall, 'Best epoch': best_epoch, 'Training Time': training_time, 'Validation Time': validation_time})
+        
+        # ========================================
+        #               Early stop
+        # ========================================
 
-        # early stop
         if auc_score > best_score:
             best_score = auc_score
             best_epoch = epoch_i + 1
@@ -324,12 +322,10 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
             if cnt == patience:
                 print("\n")
                 print("early stopping at epoch {0}".format(epoch_i + 1))
-
                 break
 
     print("")
-    print("Training complete!")
-
+    print("Training complete!"
     torch.save(best_model, model_path)
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time() - total_t0)))
 

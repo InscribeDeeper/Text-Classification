@@ -75,6 +75,7 @@
     - 所以只用 pretrain 的BERT 作为 extractor, 提取信息, 然后用 DENSE 去获取规律
         - 这里要深, 而且先不用 dropout, 而且 用 非线性 
     - RELU 因为参数过少 容易under fit, 虽然速度快, 比较快反映signal
+    - 不 pretrain 效果会差很多
 
 
 - 整合所有数据为 html
