@@ -165,15 +165,17 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
     # Flatten outputs
     pred_labels = np.vstack(pred_labels)
     true_labels = np.vstack(true_labels)
+
     # print('pred_labels', pred_labels.shape)
     # print('true_labels', true_labels.shape)
     avg_val_loss = total_eval_loss / len(dataloader)
 
     pred_sparse = np.where(pred_labels > 0.5, 1, 0) if num_labels == 2 else np.argmax(pred_labels, axis=1)
     true_sparse = np.where(true_labels > 0.5, 1, 0) if num_labels == 2 else np.argmax(true_labels, axis=1)
+    # print(true_sparse.shape, pred_sparse.shape)
 
     ## metrics
-    auc_score = roc_auc_score(true_sparse, pred_sparse)
+    auc_score = roc_auc_score(true_labels, pred_labels, multi_class='ovr')
     precison = precision_score(true_sparse, pred_sparse, average='macro')
     recall = recall_score(true_sparse, pred_sparse, average='macro')
     acc = accuracy_score(true_sparse, pred_sparse)
@@ -262,7 +264,7 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
         for step, batch in enumerate(train_dataloader):
             if step % 40 == 0 and not step == 0:
                 elapsed = format_time(time.time() - t0)
-                if verbose>1:
+                if verbose > 1:
                     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
 
             b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
@@ -294,19 +296,19 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
         # print("Performance on training...")
         model.eval()
         tokenized_texts, pred_labels, true_labels, avg_train_loss, auc_score, precison, recall, train_acc, f1 = model_eval(model, train_dataloader, num_labels, class_weight=None)
-        
-        print("    Epoch {0}\t Train Loss: {1:.4f}\t Train avg Loss {2:.4f}\t Train Acc: {3:.4f}\t Train F1: {4:.4f}\t Train AUC: {5:.4f}\t Train precision: {6:.4f}\t Train recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, train_acc, f1, auc_score, precison, recall))
+
+        print("    Epoch {0}\t Train Loss: {1:.4f}\t Train Acc: {2:.4f}\t Train F1: {3:.4f}\t Train ovr AUC: {4:.4f}\t Train precision: {5:.4f}\t Train recall: {6:.4f}".format(epoch_i + 1, avg_train_loss, train_acc, f1, auc_score, precison, recall))
 
         # print("Running Validation...")
         t0 = time.time()
         model.eval()
         tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1 = model_eval(model, validation_dataloader, num_labels, class_weight=None)
+        print("    Epoch {0}\t Val Loss: {1:.4f}\t Val Acc: {2:.4f}\t Val F1: {3:.4f}\t Val ovr AUC: {4:.4f}\t Val precision: {5:.4f}\t Val recall: {6:.4f}".format(epoch_i + 1, avg_val_loss, acc, f1, auc_score, precison, recall))
 
-        print("    Epoch {0}\t Val Loss: {1:.4f}\t Val avg Loss {2:.4f}\t Val Acc: {3:.4f}\t Val F1: {4:.4f}\t Val AUC: {5:.4f}\t Val precision: {6:.4f}\t Val recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, acc, f1, auc_score, precison, recall))
         validation_time = format_time(time.time() - t0)
         # Record all statistics from this epoch.
-        training_stats.append({'epoch': epoch_i + 1, 'train_loss': avg_train_loss, 'train_acc': train_acc, 'val_loss': avg_val_loss, 'val_acc': acc, 'val F1 macro': f1, 'val AUC': auc_score, 'val precison': precison, 'val recall': recall, 'Best epoch': best_epoch, 'Training Time': training_time, 'Validation Time': validation_time})
-        
+        training_stats.append({'epoch': epoch_i + 1, 'train_loss': avg_train_loss, 'train_acc': train_acc, 'val_loss': avg_val_loss, 'val_acc': acc, 'val F1 macro': f1, 'val ovr AUC': auc_score, 'val precison': precison, 'val recall': recall, 'Best epoch': best_epoch, 'Training Time': training_time, 'Validation Time': validation_time})
+
         # ========================================
         #               Early stop
         # ========================================
@@ -325,7 +327,7 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
                 break
 
     print("")
-    print("Training complete!"
+    print("Training complete!")
     torch.save(best_model, model_path)
     print("Total training took {:} (h:mm:ss)".format(format_time(time.time() - total_t0)))
 
