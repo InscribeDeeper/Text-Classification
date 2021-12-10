@@ -1,20 +1,34 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+from torch.nn import ReLU
 
 
 class clf_naive(nn.Module):
     # define all the layers used in model
-    def __init__(self, emb_dim, seq_len, hidden_units, num_classes, dropout_rate=0.2):
+    def __init__(self, emb_dim, seq_len, hidden_units, num_classes, dropout_rate=0):
 
         super().__init__()
         self.emb_dim = emb_dim
         self.seq_len = seq_len
         self.num_classes = num_classes
+        self.hidden_units = hidden_units
+        # self.cnn_bow_extractor = torch.nn.Sequential(
+        #     nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5),
+        #     nn.ReLU(True),
+        #     nn.MaxPool2d(1, 3),
+        # )
 
         self.fc = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(self.emb_dim, hidden_units),  # 这里要怎样连接, 处理100个词比较合适
+            nn.Linear(self.emb_dim, self.emb_dim // 2),  
+            nn.ReLU(),
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(self.emb_dim // 2, self.emb_dim // 4),  
+            nn.ReLU(),
+            nn.Dropout(p=dropout_rate),
+            nn.Linear(self.emb_dim // 4, self.hidden_units),  
+            nn.ReLU(),
             nn.Dropout(p=dropout_rate),
             nn.Linear(hidden_units, self.num_classes),
         )

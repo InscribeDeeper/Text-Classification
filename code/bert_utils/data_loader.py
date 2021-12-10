@@ -4,17 +4,19 @@ import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split  # , StratifiedKFold
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler, SequentialSampler
+import numpy as np
 
 
 ##############################################################################################################
-# Training option 1
+# Training option
 ##############################################################################################################
-def data_loader_BERT(sentences_encoding, input_ids, one_hot_labels, batch_size=None, random_state=1234, test_size=None, testing=False):
+def data_loader_BERT(sentences_encoding, input_ids, one_hot_labels, batch_size=None, random_state=1234, test_size=0.2, testing=False):
     # Split
+    stratify_y = np.argmax(one_hot_labels, axis=1)
     one_hot_labels = torch.tensor(one_hot_labels, dtype=torch.int32)
 
     if not testing:
-        train_inputs, validation_inputs, train_ids, validation_ids, train_labels, validation_labels = train_test_split(sentences_encoding, input_ids, one_hot_labels, random_state=random_state, test_size=test_size)
+        train_inputs, validation_inputs, train_ids, validation_ids, train_labels, validation_labels = train_test_split(sentences_encoding, input_ids, one_hot_labels, random_state=random_state, test_size=test_size, stratify=stratify_y)
 
         # Convert all inputs and labels into torch tensors, the required datatype for our model.
         train_inputs = torch.tensor(train_inputs, dtype=torch.float32)
@@ -41,4 +43,3 @@ def data_loader_BERT(sentences_encoding, input_ids, one_hot_labels, batch_size=N
         test_data = TensorDataset(test_inputs, input_ids, test_labels)
         test_dataloader = DataLoader(test_data, sampler=None, batch_size=batch_size)
         return test_dataloader, None
-

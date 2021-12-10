@@ -1,14 +1,14 @@
+import random
 import datetime
 import torch
 import numpy as np
 import sys
 from torch.nn.functional import softmax
-from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss  # , BCELoss
+from torch.nn import CrossEntropyLoss  
 # from sklearn.metrics import multilabel_confusion_matrix
 # from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score, precision_recall_fscore_support,
 from sklearn.metrics import roc_auc_score, f1_score, precision_score, recall_score, accuracy_score  # average_precision_score
 import time
-import random
 import copy
 import os
 from tqdm import tqdm
@@ -20,6 +20,18 @@ except ImportError:
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
     import glovar
 # Put everything together as a function. This is for pretrained word vectors
+
+
+def setup_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
+    return None
+# 设置随机数种子
+# setup_seed(1234)
 
 
 def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, device=glovar.device_type, low_RAM_inner_batch=False, embed_type=2):
@@ -295,41 +307,16 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
         model.eval()
         tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1 = model_eval(model, validation_dataloader, num_labels, class_weight=None)
 
-        # ## extra metrics
-        # pred_bools = np.argmax(pred_labels, axis=1)
-        # true_bools = np.argmax(true_labels, axis=1)
-        # val_f1 = f1_score(true_bools, pred_bools, average='micro') * 100
-        # #         val_f1 = val_f1[1] # return f1 for  class 1
-        # val_acc = (pred_bools == true_bools).astype(int).sum() / len(pred_bools)
-        # pred_bools = np.where(pred_labels>0.5, 1, 0)
-        # #true_bools = np.where(true_labels>0.5, 1, 0)
-        # val_f1 = f1_score(true_labels, pred_bools) * 100
-        # #         val_f1 = val_f1[1] # return f1 for  class 1
-        # val_acc = (pred_bools == true_labels).astype(int).sum() / len(true_labels)
-        # print('out', auc_score)
         print("    Epoch {0}\t Train Loss: {1:.4f}\t Val Loss {2:.4f}\t Val Acc: {3:.4f}\t Val F1: {4:.4f}\t AUC: {5:.4f}\t precision: {6:.4f}\t recall: {7:.4f}".format(epoch_i + 1, avg_train_loss, avg_val_loss, acc, f1, auc_score, precison, recall))
-        print()
-        #         print(classification_report(np.array(true_labels)[:,0:(num_labels)][0], \
-        #                                     np.where(np.array(pred_labels)>threshold,1,0)[:,0:(num_labels)][0],\
-        #                                     labels=label_cols,
-        #                                     target_names=label_cols[0:(num_labels)]) )
-        #         print(average_precision_score(np.array(true_labels)[:,0:(num_labels)][0],
-        #                             np.where(np.array(pred_labels)>threshold,1,0)[:,0:(num_labels)][0]) )
-
         validation_time = format_time(time.time() - t0)
         # Record all statistics from this epoch.
         training_stats.append({'epoch': epoch_i + 1, 'Training Loss': avg_train_loss, 'Valid. Loss': avg_val_loss, 'Valid. Accur.': acc, 'Best F1': f1, 'AUC': auc_score, 'precison': precison, 'recall': recall, 'Best epoch': best_epoch, 'Training Time': training_time, 'Validation Time': validation_time})
 
-        # early stopping with patient
-        # Create output directory if needed
-
-        ####
-
+        # early stop
         if auc_score > best_score:
             best_score = auc_score
             best_epoch = epoch_i + 1
             best_model = copy.deepcopy(model.state_dict())
-
             print("model saved")
             cnt = 0
         else:
