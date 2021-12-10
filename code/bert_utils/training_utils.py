@@ -73,9 +73,9 @@ def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, 
         # get the last four layers
         token_embeddings = torch.stack(hidden_states[-4:], dim=0)
         token_embeddings = token_embeddings.permute(1, 2, 0, 3)
-        token_embeddings = token_embeddings.mean(axis=2)
+        output_embedding = token_embeddings.mean(axis=2)
 
-    return token_embeddings, input_ids, output_embedding
+    return input_ids, output_embedding
 
 
 def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
