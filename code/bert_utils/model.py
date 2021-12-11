@@ -46,25 +46,25 @@ class clf_naive(nn.Module):
 class clf_finetuneBERT(nn.Module):
     """Bert Model for Classification Tasks.
     """
-    def __init__(self, freeze_bert=False, num_classes=20):
+    def __init__(self, emb_dim=768, freeze_bert=False, num_classes=20, hidden_units=50):
         """
         @param    bert: a BertModel object
         @param    classifier: a torch.nn.Module classifier
         @param    freeze_bert (bool): Set `False` to fine-tune the BERT model
         """
         super(clf_finetuneBERT, self).__init__()
-        # Specify hidden size of BERT, hidden size of our classifier, and number of labels
-        D_in, H, D_out = 768, 50, num_classes
-
+        self.emb_dim = emb_dim
+        self.num_classes = num_classes
+        self.hidden_units = hidden_units
         # Instantiate BERT model
         self.bert = BertModel.from_pretrained('bert-base-uncased')
+        self.hidden_units = hidden_units
 
-        # Instantiate an one-layer feed-forward classifier
         self.classifier = nn.Sequential(
-            nn.Linear(D_in, H),
+            nn.Linear(self.emb_dim, self.hidden_units),
             nn.ReLU(),
             # nn.Dropout(0.5),
-            nn.Linear(H, D_out))
+            nn.Linear(self.hidden_units, num_classes))
 
         # Freeze the BERT model
         if freeze_bert:
@@ -81,15 +81,10 @@ class clf_finetuneBERT(nn.Module):
         @return   logits (torch.Tensor): an output tensor with shape (batch_size,
                       num_labels)
         """
-        # Feed input to BERT
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
-
         # Extract the last hidden state of the token `[CLS]` for classification task
-        last_hidden_state_cls = outputs[0][:, 0, :] # [hidden state layer output][batch N, [CLS position], [embedding 768]]
-
-        # Feed input to classifier to compute logits
+        last_hidden_state_cls = outputs[0][:, 0, :]  # [hidden state layer output][batch N, [CLS position], [embedding 768]]
         logits = self.classifier(last_hidden_state_cls)
-
         return logits
 
 
@@ -119,14 +114,7 @@ class clf(nn.Module):
             nn.Linear(2 * lstm_units, self.num_classes),
         )
 
-
-#         self._initialization()
-
     def forward(self, x):
-        # <------ packed_output 是 ([32, 200, 160]) 需要用 CNN 1D 去提取? ------>
-
-        # encoder x,  eval() 和 train() 不会影响
-
         packed_output, (h_T, c_T) = self.lstm(x)  # (N, seq_len, 2*lstm_units)
         # h_T = [N, num layers * num directions, hid dim] => 最后一个 timestamp 输出的 vector
         # c_T = [N, num layers * num directions, hid dim] => 最后一个 timestamp 输出的 vector
@@ -141,10 +129,6 @@ class clf(nn.Module):
         logit = self.fc(hidden)  # (N, num_classes)
         # prop = torch.sigmoid(logit)  # Sigmoid for multilabel prediction + BCEWithLogitsLoss
         # print(prop.shape)
-
-        #         print(h_T.shape)
-        #         print(hidden.shape)
-        #         print(packed_output.shape)
         return logit
 
 

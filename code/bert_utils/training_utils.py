@@ -189,7 +189,7 @@ def model_eval(model, dataloader, num_labels, finetune=False, class_weight=None,
     return tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1
 
 
-def train_multi_label_model(model, num_labels, label_cols, train_dataloader, validation_dataloader, finetune=False, optimizer=None, scheduler=None, epochs=10, class_weight=None, patience=3, model_path='./saved_models', verbose=0):
+def train_multi_label_model(model, num_labels, label_cols, train_dataloader, validation_dataloader, finetune=False, optimizer=None, scheduler=None, epochs=10, class_weight=None, patience=3, model_path='bert_clf.pt', verbose=0):
     """
     Below is our training loop. There's a lot going on, but fundamentally for each pass in our loop we have a trianing phase and a validation phase. At each pass we need to:
 

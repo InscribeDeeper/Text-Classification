@@ -7,3 +7,4 @@ data/*
 *.xlsx
 *.csv
 bert_clf
+bert_ccsv
