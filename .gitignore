@@ -6,3 +6,4 @@ data/*
 *.h5
 *.xlsx
 *.csv
+bert_clf

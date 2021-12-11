@@ -28,15 +28,14 @@ def setup_seed(seed):
     np.random.seed(seed)
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
-
-    return None
+    return
 
 
 # 设置随机数种子
 # setup_seed(1234)
 
 
-def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, device=glovar.device_type, low_RAM_inner_batch=False, embed_type=2):
+def extract_contextual_embedding(sentences, tokenizer, bert_model, finetune=False, max_len=100, device=glovar.device_type, low_RAM_inner_batch=False, embed_type=2):
     '''
     return
         token_embeddings, input_ids, output_embedding
@@ -52,73 +51,77 @@ def extract_contextual_embedding(sentences, tokenizer, bert_model, max_len=100, 
         encoded_dict = tokenizer.encode_plus(sent, truncation=True, add_special_tokens=True, max_length=max_len, pad_to_max_length=True, return_attention_mask=True, return_tensors='pt')
         input_ids.append(encoded_dict['input_ids'])
         attention_masks.append(encoded_dict['attention_mask'])
-        # rint(sys.getsizeof(input_ids))
 
-    # attention_masks = torch.cat(attention_masks, dim=0)
+    if finetune:
+        input_ids = torch.cat(input_ids, dim=0)
+        attention_masks = torch.cat(attention_masks, dim=0)
+        output_embedding = input_ids  # for further processing.
+        return input_ids, output_embedding, attention_masks
 
-    bert_model.eval()
+    else:
+        # attention_masks = torch.cat(attention_masks, dim=0)
+        # bert_model.eval()
 
-    if low_RAM_inner_batch:
-        with torch.no_grad():
-            # too large -> for loop to handle
-            # 进度条 # 取一个 log 的 output , 保存一个变量
-            for batch_input_ids, batch_attention_masks in tqdm(list(zip(input_ids, attention_masks))):
-                # for batch_input_ids, batch_attention_masks in (list(zip(input_ids, attention_masks))):
-                outputs = bert_model(batch_input_ids.to(device), batch_attention_masks.to(device))
-                ## in output
-                # 0.last_hidden_state
-                # 1.pooler_output
-                # 2.hidden_states
-                # 3.attentions
+        if low_RAM_inner_batch:
+            with torch.no_grad():
+                # too large -> for loop to V-RAM handle
+                for batch_input_ids, batch_attention_masks in tqdm(list(zip(input_ids, attention_masks))):
+                    # for batch_input_ids, batch_attention_masks in (list(zip(input_ids, attention_masks))):
+                    outputs = bert_model(batch_input_ids.to(device), batch_attention_masks.to(device))
+                    ## in output
+                    # 0.last_hidden_state
+                    # 1.pooler_output
+                    # 2.hidden_states
+                    # 3.attentions
 
-                ## dimension
-                # {'attentions': 12 layer * torch.Size([1, 12, 100, 100]),
-                # 'hidden_states': (12 layer + 1 output layer) *  torch.Size([1, 100, 768]),
-                # 'last_hidden_state': torch.Size([100, 768]),
-                # 'pooler_output': torch.Size([768])}
+                    ## dimension
+                    # {'attentions': 12 layer * torch.Size([1, 12, 100, 100]),
+                    # 'hidden_states': (12 layer + 1 output layer) *  torch.Size([1, 100, 768]),
+                    # 'last_hidden_state': torch.Size([100, 768]),
+                    # 'pooler_output': torch.Size([768])}
 
-                if embed_type == 1:  # to get contextual embedding for each words
-                    hidden_states = outputs[2]
-                    token_embeddings = torch.stack(hidden_states[-4:], dim=0)  # get the last four layers
-                    token_embeddings = token_embeddings.permute(1, 2, 0, 3)
-                    token_embeddings = token_embeddings.mean(axis=2)
-                    token_embeddings = (token_embeddings.cpu().numpy()) * (torch.tile(batch_attention_masks, (768, 1)).T)
-                elif embed_type == 2:
-                    token_embeddings = outputs.pooler_output
-                elif embed_type == 3:
-                    token_embeddings = outputs.last_hidden_state[0][0]  # [CLS] tokens
-                output_embedding.append(token_embeddings.cpu().numpy())
+                    if embed_type == 1:  # to get contextual embedding for each words
+                        hidden_states = outputs[2]
+                        token_embeddings = torch.stack(hidden_states[-4:], dim=0)  # get the last four layers
+                        token_embeddings = token_embeddings.permute(1, 2, 0, 3)
+                        token_embeddings = token_embeddings.mean(axis=2)
+                        token_embeddings = (token_embeddings.cpu().numpy()) * (torch.tile(batch_attention_masks, (768, 1)).T)
+                    elif embed_type == 2:
+                        token_embeddings = outputs.pooler_output
+                    elif embed_type == 3:
+                        token_embeddings = outputs.last_hidden_state[0][0]  # [CLS] tokens
+                    output_embedding.append(token_embeddings.cpu().numpy())
 
-        input_ids = torch.cat(input_ids, dim=0)  # Convert the lists into tensors.
+            input_ids = torch.cat(input_ids, dim=0)  # Convert the lists into tensors.
 
-        if embed_type == 2:
-            output_embedding = np.concatenate(output_embedding, axis=0)
-        else:
-            output_embedding = np.array(output_embedding)
+            if embed_type == 2:
+                output_embedding = np.concatenate(output_embedding, axis=0)
+            else:
+                output_embedding = np.array(output_embedding)
 
-    else:  # high RAM outer batch
-        with torch.no_grad():
-            # Convert the lists into tensors.
-            input_ids = torch.cat(input_ids, dim=0)
-            attention_masks = torch.cat(attention_masks, dim=0)
-            outputs = bert_model(input_ids.to(device), attention_masks.to(device))
+        else:  # high RAM outer batch
+            with torch.no_grad():
+                # Convert the lists into tensors.
+                input_ids = torch.cat(input_ids, dim=0)
+                attention_masks = torch.cat(attention_masks, dim=0)
+                outputs = bert_model(input_ids.to(device), attention_masks.to(device))
 
-        if embed_type == 1:
-            hidden_states = outputs[2]
-            token_embeddings = torch.stack(hidden_states[-4:], dim=0)
-            token_embeddings = token_embeddings.permute(1, 2, 0, 3)
-            token_embeddings = token_embeddings.mean(axis=2)
-        elif embed_type == 2:
-            token_embeddings = outputs.pooler_output
-        elif embed_type == 3:
-            token_embeddings = outputs.last_hidden_state[0][0]  # [CLS] tokens
+            if embed_type == 1:
+                hidden_states = outputs[2]
+                token_embeddings = torch.stack(hidden_states[-4:], dim=0)
+                token_embeddings = token_embeddings.permute(1, 2, 0, 3)
+                token_embeddings = token_embeddings.mean(axis=2)
+            elif embed_type == 2:
+                token_embeddings = outputs.pooler_output  # 不适合很多空值的情况,
+            elif embed_type == 3:
+                token_embeddings = outputs.last_hidden_state[0][0]  # [CLS] tokens
 
-        output_embedding = token_embeddings.cpu().numpy()
+            output_embedding = token_embeddings.cpu().numpy()
 
-    return input_ids, output_embedding
+        return input_ids, output_embedding, attention_masks
 
 
-def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
+def model_eval(model, dataloader, num_labels, finetune=False, class_weight=None, task='eval'):
     '''only move the data into GPU when training and validating'''
 
     device = glovar.device_type
@@ -138,11 +141,16 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
         criterion = CrossEntropyLoss()
 
     for batch in dataloader:
-        b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
-        b_input_ids = batch[1].to(device)  # [1]: input sentence ids
-        b_labels = batch[2].to(device)  # [2]: labels
         with torch.no_grad():
-            b_logits = model(b_input_encoding)
+            b_labels = batch[2].to(device)  # [2]: labels
+            if finetune:
+                b_input_ids = batch[1].to(device)  # [1]: input sentence ids
+                b_attentions = batch[3].to(device)  # [3]: att
+                b_logits = model(b_input_ids, b_attentions)
+            else:
+                b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
+                b_logits = model(b_input_encoding)
+
             b_prob = softmax(b_logits)
             # val_loss = criterion(b_prob.view(-1, num_labels), b_labels.type_as(b_prob).view(-1, num_labels))  # convert labels to float for calculation
             val_loss = criterion(b_prob, b_labels.type_as(b_prob))  # convert labels to float for calculation
@@ -153,10 +161,6 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
             b_prob = b_prob.to('cpu').numpy()
             pred_label = b_prob
 
-            # logit_preds.append(b_logits.reshape(-1,num_labels))
-            # true_labels.append(b_labels.reshape(-1,num_labels))
-            # pred_labels.append(pred_label.reshape(-1,num_labels))
-            #             print(b_labels)
             logit_preds.append(b_logits)
             true_labels.append(b_labels)
             pred_labels.append(pred_label)
@@ -185,7 +189,7 @@ def model_eval(model, dataloader, num_labels, class_weight=None, task='eval'):
     return tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1
 
 
-def train_multi_label_model(model, num_labels, label_cols, train_dataloader, validation_dataloader, optimizer=None, scheduler=None, epochs=10, class_weight=None, patience=3, model_path='./saved_models', verbose=0):
+def train_multi_label_model(model, num_labels, label_cols, train_dataloader, validation_dataloader, finetune=False, optimizer=None, scheduler=None, epochs=10, class_weight=None, patience=3, model_path='./saved_models', verbose=0):
     """
     Below is our training loop. There's a lot going on, but fundamentally for each pass in our loop we have a trianing phase and a validation phase. At each pass we need to:
 
@@ -267,13 +271,17 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
                 if verbose > 1:
                     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
 
-            b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
-            # b_input_ids = batch[1].to(device)  # [1]: input sentence ids
-            b_labels = batch[2].to(device)  # [1]: labels
 
             model.zero_grad()
+            b_labels = batch[2].to(device)  # [2]: labels
+            if finetune:
+                b_input_ids = batch[1].to(device)  # [1]: input sentence ids
+                b_attentions = batch[3].to(device)  # [3]: att
+                b_logits = model(b_input_ids, b_attentions)
+            else:
+                b_input_encoding = batch[0].to(device)  # [0]: input bert encoding features
+                b_logits = model(b_input_encoding)
 
-            b_logits = model(b_input_encoding)
             b_prob = softmax(b_logits)
             loss = criterion(b_prob, b_labels.type_as(b_prob))  # convert labels to float for calculation
             # loss = criterion(b_prob.view(-1, num_labels), b_labels.type_as(b_prob).view(-1, num_labels))  # convert labels to float for calculation
@@ -281,6 +289,17 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
             total_train_loss += loss.item()
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) 可以试着删除
+
+            clip_value = False
+            if clip_value:
+                torch.nn.utils.clip_grad_value_(model.parameters(), clip_value=1)
+
+            clip_norm = False
+            if clip_norm:
+                total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)  # MAML 不允许 clipnorm?! clip_coef = max_norm / (total_norm + 1e-6) ; p.grad.detach().mul_(clip_coef.to(p.grad.device)) # 为什么没起作用
+            else:
+                total_norm = 'No applied'
+
             optimizer.step()
 
             if scheduler is not None:
@@ -295,14 +314,14 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
         # ========================================
         # print("Performance on training...")
         model.eval()
-        tokenized_texts, pred_labels, true_labels, avg_train_loss, auc_score, precison, recall, train_acc, f1 = model_eval(model, train_dataloader, num_labels, class_weight=None)
+        tokenized_texts, pred_labels, true_labels, avg_train_loss, auc_score, precison, recall, train_acc, f1 = model_eval(model, train_dataloader, num_labels, finetune=finetune, class_weight=None)
 
         print("    Epoch {0}\t Train Loss: {1:.4f}\t Train Acc: {2:.4f}\t Train F1: {3:.4f}\t Train ovr AUC: {4:.4f}\t Train precision: {5:.4f}\t Train recall: {6:.4f}".format(epoch_i + 1, avg_train_loss, train_acc, f1, auc_score, precison, recall))
 
         # print("Running Validation...")
         t0 = time.time()
         model.eval()
-        tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1 = model_eval(model, validation_dataloader, num_labels, class_weight=None)
+        tokenized_texts, pred_labels, true_labels, avg_val_loss, auc_score, precison, recall, acc, f1 = model_eval(model, validation_dataloader, num_labels, finetune=finetune, class_weight=None)
         print("    Epoch {0}\t Val Loss: {1:.4f}\t Val Acc: {2:.4f}\t Val F1: {3:.4f}\t Val ovr AUC: {4:.4f}\t Val precision: {5:.4f}\t Val recall: {6:.4f}".format(epoch_i + 1, avg_val_loss, acc, f1, auc_score, precison, recall))
 
         validation_time = format_time(time.time() - t0)

@@ -7,6 +7,7 @@
     - benchmark
     - baseline
     - 表现 好 与不好的原因
+        - model 是不是只看了前面的 subject, 不然为什么后面的 reply 什么的 噪音那么大    
     - 结果的可视化
     - 速度 和 准确性的 balance
         - 考虑并行运算可能性

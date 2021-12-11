@@ -27,6 +27,8 @@ def load_data(only_stem_voc=False, train_path='../data/structured_train.json', t
     train = pd.read_json(train_path)
     test = pd.read_json(test_path)
 
+    train['contained_emails'] = train['contained_emails'].apply(lambda x: " ".join(x) if x is not None else '')
+    test['contained_emails'] = test['contained_emails'].apply(lambda x: " ".join(x) if x is not None else '')
     if sample50:
         seeds = 2021
         train = train.groupby('label').sample(50, random_state=seeds)
@@ -51,6 +53,7 @@ def load_data(only_stem_voc=False, train_path='../data/structured_train.json', t
 ### data augmentation
 ####################################
 def train_augmentation(train, select_comb=[['text'], ['reply', 'reference_one']]):
+
     if select_comb is None:
         return train['text'], train['label']
 

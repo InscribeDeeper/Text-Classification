@@ -76,6 +76,18 @@
         - 这里要深, 而且先不用 dropout, 而且 用 非线性 
     - RELU 因为参数过少 容易under fit, 虽然速度快, 比较快反映signal
     - 不 pretrain 效果会差很多
+    -   The first token of every sequence is always a special classification token ([CLS]). The final hidden state corresponding to this token is used as the aggregate sequence representation for classification tasks.
+    - 缺点 
+        - All sentences must be padded or truncated to a single, fixed length.
+        - The maximum sentence length is 512 tokens.
+
+- BertModel
+- BertForPreTraining
+- BertForMaskedLM
+- BertForNextSentencePrediction
+- BertForSequenceClassification - The one we’ll use.
+- BertForTokenClassification
+- BertForQuestionAnswering
 
 
 - 整合所有数据为 html
