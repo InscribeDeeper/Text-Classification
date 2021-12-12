@@ -5,24 +5,19 @@
 	"Nntp-Posting-Host": { "0": "skndiv.dseg.ti.com" },
 	"Reply-To": { "0": "pyron@skndiv.dseg.ti.com" },
 	"Organization": { "0": "TI/DSEG VAX Support" },
-	"reply": {
-		"0": "There is a veto proof majority in the house. The Senate, unfortunately, is a different story. The Lt. Gov. has vowed that the bill will not be voted on, and he has the power to do it. In addition, the Senate is a much smaller, and more readily manipulated body. On ther other hand, the semi-automatic ban will likely not live, as at least fifty per cent of the house currently opposes it, and it is VERY far down in the bill order in the Senate . And I thought my TX Political Science class was a waste of time! -- Dillon Pyron The opinions expressed are those of the TI/DSEG Lewisville VAX Support sender unless otherwise stated. 462-3556 492-4656 God gave us weather so we wouldn't complain about other things. PADI DM-54909"
-	},
+	"reply": {"0": "There is a veto proof majority in the house. The Senate, unfortunately, is a different story. The Lt. Gov. has vowed that the bill will not be voted on, and he has the power to do it. In addition, the Senate is a much smaller, and more readily manipulated body. On ther other hand, the semi-automatic ban will likely not live, as at least fifty per cent of the house currently opposes it, and it is VERY far down in the bill order in the Senate . And I thought my TX Political Science class was a waste of time! -- Dillon Pyron The opinions expressed are those of the TI/DSEG Lewisville VAX Support sender unless otherwise stated. 462-3556 492-4656 God gave us weather so we wouldn't complain about other things. PADI DM-54909"	},
 	"reference_one": { "0": "Do people expect the Texans congressmen to act as the N.J. Republicans did?" },
-	"reference_two": {
-		"0": "Wasn't she the one making the comment in '88 about George being born with a silver foot in his mouth? Sounds like another damn politician to me. Ain't like the old days in Texas anymore. The politicians may have been corrupt then, but at least they'd take a stand. News now is that the House may already have a two-thirds majority, so her \"opposition\" out of her concern for image may not matter."
-	},
+	"reference_two": {"0": "Wasn't she the one making the comment in '88 about George being born with a silver foot in his mouth? Sounds like another damn politician to me. Ain't like the old days in Texas anymore. The politicians may have been corrupt then, but at least they'd take a stand. News now is that the House may already have a two-thirds majority, so her \"opposition\" out of her concern for image may not matter."},
 	"date": { "0": null },
 	"delivered_to": { "0": [] },
 	"to_domains": { "0": ["skndiv.dseg.ti.com"] },
 	"error_message": { "0": null },
-	"contained_emails": {
-		"0": [" <1993Apr5.153951.25005@eagle.lerc.nasa.gov>, ", "pspod@bigbird.lerc.nasa.gov ", " >arc@cco.caltech.edu ", " pyron@skndiv.dseg.ti.com "]
-	},
+	"contained_emails": {"0": [" <1993Apr5.153951.25005@eagle.lerc.nasa.gov>, ", "pspod@bigbird.lerc.nasa.gov ", " >arc@cco.caltech.edu ", " pyron@skndiv.dseg.ti.com "]},
 	"long_string": { "0": [] },
-	"tag_reply": {
-		"0": "veto proof majority house story bill power addition body hand ban cent house bill order Science class waste time opinions sender weather things"
-	},
+	"tag_reply": {"0": "veto proof majority house story bill power addition body hand ban cent house bill order Science class waste time opinions sender weather things"},
 	"tag_reference_one": { "0": "people Texans congressmen Republicans" },
 	"tag_reference_two": { "0": "comment foot mouth damn politician days politicians stand majority opposition concern image" }
 }
+
+
+
