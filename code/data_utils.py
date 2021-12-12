@@ -1,5 +1,13 @@
 import pandas as pd
 
+from nltk.corpus import stopwords
+from gensim.parsing.preprocessing import STOPWORDS
+
+def load_mystopwords(including=['the', 'ax']):
+    updated_sw = STOPWORDS.union(set(including))
+    # updated_sw = set(stopwords.words('english') + including)
+    return updated_sw
+
 
 def upsampling_train(train, seeds=10):
     group_size = train.groupby('label').size()

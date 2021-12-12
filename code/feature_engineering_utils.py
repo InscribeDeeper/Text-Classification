@@ -9,13 +9,13 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
 from nltk.tokenize import word_tokenize
 from gensim.parsing.preprocessing import remove_stopwords
+from data_utils import load_mystopwords
 ####################################
 ### string normalized
 ####################################
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('words')
-
 
 def normal_string(x):
     x = remove_stopwords(x)
@@ -34,7 +34,7 @@ def extract_stem_voc(x):
 
 
 def count_vectorizer(train_text, test_text, voc=None, stop_words=False, binary=False, min_df=3, max_df=0.95, ngram_range=(1, 1)):
-    en_stopwords = stopwords.words('english') if stop_words else None
+    en_stopwords = load_mystopwords() if stop_words else None
     count_vect = CountVectorizer(stop_words=en_stopwords, binary=binary, vocabulary=voc, token_pattern=r'\b\w[\']?\w*\b', min_df=min_df, max_df=max_df, ngram_range=ngram_range)
     dtm_train = count_vect.fit_transform(train_text)
     dtm_test = count_vect.transform(test_text) if test_text is not None else None
@@ -45,7 +45,7 @@ def count_vectorizer(train_text, test_text, voc=None, stop_words=False, binary=F
 
 
 def tfidf_vectorizer(train_text, test_text, voc=None, stop_words=False, binary=False, min_df=3, max_df=0.95, ngram_range=(1, 1)):
-    en_stopwords = stopwords.words('english') if stop_words else None
+    en_stopwords = load_mystopwords() if stop_words else None
     # sublinear_tf=True,
     tfidf_vect = TfidfVectorizer(stop_words=en_stopwords, binary=binary, vocabulary=voc, token_pattern=r'\b\w[\']?\w*\b', norm='l2', min_df=min_df, max_df=max_df, ngram_range=ngram_range)
     dtm_train = tfidf_vect.fit_transform(train_text)
