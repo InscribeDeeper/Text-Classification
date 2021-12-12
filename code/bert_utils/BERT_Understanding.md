@@ -1,3 +1,4 @@
+- seq-len 大于200 bert不work了. 
 # Bert 处理代码框架
 
 ## 精简 example

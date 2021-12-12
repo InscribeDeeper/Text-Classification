@@ -121,6 +121,7 @@ def pred_topic_model(lda, docs, vocabulary):
 
 
 def lil_to_dataframe(pred, nrows, ncols):
+    '''sorted([(1, 0.4), (2,0.6) , (3, 0.3)], key=lambda x:-x[1])[0][0]'''
     res = {}
     for row, doc_topics in enumerate(pred):
         res[row] = dict(doc_topics)

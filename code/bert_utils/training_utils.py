@@ -288,7 +288,7 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
 
             total_train_loss += loss.item()
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) 可以试着删除
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) # 可以试着删除
 
             clip_value = False
             if clip_value:

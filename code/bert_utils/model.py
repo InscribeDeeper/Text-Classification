@@ -82,8 +82,19 @@ class clf_finetuneBERT(nn.Module):
                       num_labels)
         """
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
+        
+        # embed_type = 3 
         # Extract the last hidden state of the token `[CLS]` for classification task
         last_hidden_state_cls = outputs[0][:, 0, :]  # [hidden state layer output][batch N, [CLS position], [embedding 768]]
+
+        # embed_type = 2
+        # outputs.pooler_output
+        
+        # embed_type = 1
+        # average 
+        # average_hidden_state_four_layers = torch.stack(hidden_states[2][-4:], dim=0).permute(1, 2, 0, 3).mean(axis=2)
+
+
         logits = self.classifier(last_hidden_state_cls)
         return logits
 
