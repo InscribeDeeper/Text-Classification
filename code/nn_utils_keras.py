@@ -1,4 +1,5 @@
 # encoding=utf-8
+import random
 from tensorflow.keras.utils import model_to_dot
 from IPython.display import SVG
 import numpy as np
@@ -247,3 +248,9 @@ def cnn_model_l2(
 def visual_textCNN(model, filename='multichannel-CNN.png'):
     print(model.summary())
     return SVG(model_to_dot(model, dpi=70, show_shapes=True, show_layer_names=True).create(prog='dot', format='svg'))
+
+
+def setup_seed_ml(seed):
+    np.random.seed(seed)
+    random.seed(seed)
+    return
