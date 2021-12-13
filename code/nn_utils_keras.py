@@ -11,6 +11,7 @@ import gensim.downloader as api
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from gensim.models import word2vec
 
+### This file prepared is prepared in my previously projects.
 
 ##################################################
 # Dataset prepare class

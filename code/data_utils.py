@@ -3,13 +3,25 @@ import pandas as pd
 from nltk.corpus import stopwords
 from gensim.parsing.preprocessing import STOPWORDS
 
+
 def load_mystopwords(including=['the', 'ax']):
+    """update stopwords
+    """
     updated_sw = STOPWORDS.union(set(including))
     # updated_sw = set(stopwords.words('english') + including)
     return updated_sw
 
 
 def upsampling_train(train, seeds=10):
+    """upsampling for group with smaller size than the average group size
+
+    Args:
+        train ([pd.DataFrame]): [data corpus]
+        seeds (int, optional): [random state]. Defaults to 10.
+
+    Returns:
+        [type]: [updated training set and the updated information]
+    """
     group_size = train.groupby('label').size()
     mean_size = int(group_size.mean())
     small_groups = group_size[group_size < mean_size].index.tolist()
@@ -31,10 +43,14 @@ def upsampling_train(train, seeds=10):
 
 def load_data(only_stem_voc=False, train_path='../data/structured_train.json', test_path='../data/structured_test.json', sample50=False, \
                  select_cols=["global_index", "doc_path", "label", "reply", "reference_one", "reference_two", "tag_reply", "tag_reference_one", "tag_reference_two", "Subject", "From", "Lines", "Organization", "contained_emails", "long_string", "text", "error_message"]):
+    """Load the processed dataset from datafolder
+    
+    Args:
+        if only_stem_voc is True, we will load the processed dataset which are lemmatized, stemmed, and should be the existed vocbulary in wordnet
 
+    """
     train = pd.read_json(train_path)
     test = pd.read_json(test_path)
-
 
     train['contained_emails'] = train['contained_emails'].apply(lambda x: " ".join(x) if x is not None else '')
     test['contained_emails'] = test['contained_emails'].apply(lambda x: " ".join(x) if x is not None else '')
@@ -42,8 +58,6 @@ def load_data(only_stem_voc=False, train_path='../data/structured_train.json', t
         seeds = 2021
         train = train.groupby('label').sample(50, random_state=seeds)
         test = test.groupby('label').sample(50, random_state=seeds)
-
-
 
     print("\nmay use cols: \n", select_cols)
     train = train[select_cols]
@@ -64,7 +78,13 @@ def load_data(only_stem_voc=False, train_path='../data/structured_train.json', t
 ### data augmentation
 ####################################
 def train_augmentation(train, select_comb=[['text'], ['reply', 'reference_one']]):
+    """Based on combination of columns, this function will double the rows of samples
 
+    Args:
+        train ([type]): [description]
+        select_comb (list, optional): [list of list, the inside list will represent which columns taht we need to combine]. Defaults to [['text'], ['reply', 'reference_one']].
+
+    """
     if select_comb is None:
         return train['text'], train['label']
 

@@ -1,8 +1,6 @@
 # nltk.download('stopwords')
 
 from data_utils import load_mystopwords
-
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from wordcloud import WordCloud
 import numpy as np
 from tensorflow.keras.preprocessing.text import Tokenizer
@@ -10,19 +8,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from gensim.parsing.preprocessing import remove_stopwords
 
-
-from nltk import word_tokenize
-
+# from nltk import word_tokenize
 # def remove_stopwords(sent, stopwords):
 #     sent = " ".join([word for word in word_tokenize(sent, preserve_line=True) if word not in stopwords]) # 这个tokenizer做了很多不行的东西
 #     return sent
 
 
 def eda_MAX_NB_WORDS(corpus, remove_stop=False, ratio=0.95, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', char_level=False):
-    '''
-    Input: data series
-    '''
-    #
+    """FIND max number of words based on percentage threshold ratio and plot the distribution
+    """
     if remove_stop:
         en_stopwords = load_mystopwords()
         corpus = corpus.apply(lambda x: remove_stopwords(x))
@@ -30,29 +24,20 @@ def eda_MAX_NB_WORDS(corpus, remove_stop=False, ratio=0.95, filters='!"#$%&()*+,
     tokenizer_eda = Tokenizer(num_words=None, filters=filters, lower=True, char_level=char_level)  # 如果有这个, NLTK的preprocessing可以不用做
     tokenizer_eda.fit_on_texts(corpus)
     b = pd.DataFrame(tokenizer_eda.word_counts.items(), columns=['word', 'count'])
+    a = b.sort_values(by='count', ascending=False).reset_index()  # 排序重建index 就是 tokenizer中的word_index
 
-    # by nltk
-    #     tfidf_vect = TfidfVectorizer(stop_words="english", norm=None, min_df=0, max_df=0.999, use_idf=False, smooth_idf=False)
-    #     dtm = tfidf_vect.fit_transform(corpus)
-    #     b = pd.DataFrame.from_dict(tfidf_vect.vocabulary_, orient='index').reset_index()
-    #     b.columns =['word', 'count']
-    # grouping
-
-    # 排序重建index 就是 tokenizer中的word_index
-    a = b.sort_values(by='count', ascending=False).reset_index()
-
-    # ########### 累加百分比 可视化
+    # ########### cumsum percentage
     plt.figure(figsize=(20, 5))
-    word_distribution = a['count'].cumsum() / a['count'].sum()  # 求累加百分比
-    word_distribution.plot()  # 出图
+    word_distribution = a['count'].cumsum() / a['count'].sum()
+    word_distribution.plot()
 
-    # cut_index = np.argmin(abs(word_distribution-ratio)) # 找到离0.8最近的index位置
+    # cut_index = np.argmin(abs(word_distribution-ratio))
     diff = abs(word_distribution - ratio)
     cut_index = diff[diff == min(diff)].index[0]
 
-    plt.plot([cut_index, cut_index], [0, ratio])  # 找出 固定 ratio 的index
+    plt.plot([cut_index, cut_index], [0, ratio])
     plt.plot([0, cut_index], [ratio, ratio])
-    plt.xlabel("word_index")  # 需要先sort, 才能说是index of words.
+    plt.xlabel("word_index")
     plt.ylabel("word_cum_counts_perc")
     plt.title("MAX_NB_WORDS Cumsum Percentage")
     plt.show()
@@ -76,9 +61,8 @@ def eda_MAX_NB_WORDS(corpus, remove_stop=False, ratio=0.95, filters='!"#$%&()*+,
 
 
 def eda_MAX_DOC_LEN(corpus, remove_stop=False, ratio=0.9, filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n', char_level=False):
-    '''
-    Input: list of sentences (string type)
-    '''
+    """FIND max document length based on percentage threshold ratio and plot the distribution
+    """
 
     if remove_stop:
         en_stopwords = load_mystopwords()
@@ -122,6 +106,8 @@ def eda_MAX_DOC_LEN(corpus, remove_stop=False, ratio=0.9, filters='!"#$%&()*+,-.
 
 
 def eda_WORD_CLOUD(corpus, remove_stop=False, color='Purples', filters='!"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n'):
+    """generate wordcloud on EDA part
+    """
 
     en_stopwords = None
 
@@ -129,11 +115,9 @@ def eda_WORD_CLOUD(corpus, remove_stop=False, color='Purples', filters='!"#$%&()
         en_stopwords = load_mystopwords()
         corpus = corpus.apply(lambda x: remove_stopwords(x))
 
-    # 如果有这个, NLTK的preprocessing可以不用做    tokenizer_eda.fit_on_texts(corpus)
     tokenizer_eda = Tokenizer(num_words=None, filters=filters, lower=True)
     tokenizer_eda.fit_on_texts(corpus)
     b = pd.DataFrame(tokenizer_eda.word_counts.items(), columns=['word', 'count'])
-    # 排序重建index 就是 tokenizer中的word_index
     a = b.sort_values(by='count', ascending=False).reset_index()
     sorted_freq = a
     sorted_freq.columns = ['idx', 'word', 'freq']
@@ -153,7 +137,7 @@ def eda_WORD_CLOUD(corpus, remove_stop=False, color='Purples', filters='!"#$%&()
         max_font_size=30,
         background_color='white',
         colormap=color)
-        # colormap=color) # Purples / Blues
+    # colormap=color) # Purples / Blues
     wordcloud.fit_words(top1000_freq)  # 把数据输入 wordcloud 生成器
     plt.figure(figsize=(20, 10))
     # 图片大小

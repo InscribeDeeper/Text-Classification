@@ -1,3 +1,4 @@
+### This file prepared is prepared in my previously projects.
 import random
 import datetime
 import torch
@@ -5,8 +6,6 @@ import numpy as np
 import sys
 from torch.nn.functional import softmax
 from torch.nn import CrossEntropyLoss
-# from sklearn.metrics import multilabel_confusion_matrix
-# from sklearn.metrics import classification_report, confusion_matrix, f1_score, accuracy_score, precision_recall_fscore_support,
 from sklearn.metrics import roc_auc_score, f1_score, precision_score, recall_score, accuracy_score  # average_precision_score
 import time
 import copy
@@ -19,8 +18,6 @@ except ImportError:
     print("Append path: ", os.path.abspath(os.path.dirname(__file__)))
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
     import glovar
-# Put everything together as a function. This is for pretrained word vectors
-
 
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -29,10 +26,6 @@ def setup_seed(seed):
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
     return
-
-
-# 设置随机数种子
-# setup_seed(1234)
 
 
 def extract_contextual_embedding(sentences, tokenizer, bert_model, finetune=False, max_len=100, device=glovar.device_type, low_RAM_inner_batch=False, embed_type=2):
@@ -271,7 +264,6 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
                 if verbose > 1:
                     print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
 
-
             model.zero_grad()
             b_labels = batch[2].to(device)  # [2]: labels
             if finetune:
@@ -288,7 +280,7 @@ def train_multi_label_model(model, num_labels, label_cols, train_dataloader, val
 
             total_train_loss += loss.item()
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0) # 可以试着删除
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # 可以试着删除
 
             clip_value = False
             if clip_value:

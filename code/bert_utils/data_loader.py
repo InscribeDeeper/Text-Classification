@@ -11,7 +11,21 @@ import numpy as np
 # Training option
 ##############################################################################################################
 def data_loader_BERT(sentences_encoding, input_ids, attention_masks, one_hot_labels, batch_size=None, random_state=1234, test_size=0.2, testing=False):
-    # Split
+    """generate dataloader for batch input
+
+    Args:
+        sentences_encoding ([type]): [description]
+        input_ids ([type]): [description]
+        attention_masks ([type]): [description]
+        one_hot_labels ([type]): [description]
+        batch_size ([type], optional): [description]. Defaults to None.
+        random_state (int, optional): [description]. Defaults to 1234.
+        test_size (float, optional): [description]. Defaults to 0.2.
+        testing (bool, optional): [description]. Defaults to False.
+
+    Returns:
+        [type]: [description]
+    """
     stratify_y = np.argmax(one_hot_labels, axis=1)
     one_hot_labels = torch.tensor(one_hot_labels, dtype=torch.int32)
 
