@@ -1,10 +1,19 @@
 from sklearn import metrics
 from sklearn.model_selection import cross_validate
 import pandas as pd
-from sklearn.feature_selection import SelectKBest, chi2
 
 
 def evaluation_report(y_test, pred, labels=None):
+    """Generate report for demand metrics
+
+    Args:
+        y_test ([pd.series]): [ground truth label]
+        pred ([[pd.series]]): [model prediction]
+        labels ([dict], optional): [ground truth label name mapping to index]. Defaults to None.
+
+    Returns:
+        [pd.dataframe]: [the detail report table]
+    """
     classification_report = pd.DataFrame(metrics.classification_report(y_true=y_test, y_pred=pred, target_names=labels, output_dict=True)).T
     classification_report.loc['micro avg', :] = metrics.precision_recall_fscore_support(y_true=y_test, y_pred=pred, average='micro')
     classification_report.loc['micro avg', 'support'] = classification_report.loc['macro avg', 'support']
@@ -21,6 +30,18 @@ def roc_auc(y_test, y_prob):
 
 
 def clf_cv(clf, X_train, y_train, kfold=4, cv_metrics=["precision_macro", "accuracy", "f1_macro", "f1_micro"]):
+    """cross validate the model performance on the training set
+
+    Args:
+        clf ([class]): [model classifier from sklearn]
+        X_train ([np.array]): [train tfidf or tf matrix]
+        y_train ([np.array]): [train label]
+        kfold (int, optional): [how many fold]. Defaults to 4.
+        cv_metrics (list, optional): [matrix to record]. Defaults to ["precision_macro", "accuracy", "f1_macro", "f1_micro"].
+
+    Returns:
+        [pd.dataframe]: [the record on every fold]
+    """
     cv = cross_validate(clf, X_train, y_train, scoring=cv_metrics, cv=kfold, return_train_score=True)
     cv = pd.DataFrame(cv)
     f1_macro = cv['test_f1_macro'].mean()
@@ -28,16 +49,3 @@ def clf_cv(clf, X_train, y_train, kfold=4, cv_metrics=["precision_macro", "accur
     print("cv average f1 macro: ", f1_macro)
     print("cv average f1 micro: ", f1_micro)
     return cv
-
-
-def feature_selection_chi2(vectorizer, X_train, y_train, X_test, k=5000):
-    feature_names = vectorizer.get_feature_names()
-    # Feature reduction with Kbest features based on chi2 score
-    ch2 = SelectKBest(chi2, k=k)
-    X_train = ch2.fit_transform(X_train, y_train)
-    X_test = ch2.transform(X_test)
-    if feature_names:
-        feature_names = [feature_names[i] for i in ch2.get_support(indices=True)]
-    return feature_names
-
-    
