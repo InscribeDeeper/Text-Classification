@@ -71,7 +71,7 @@ def eda_MAX_NB_WORDS(corpus, remove_stop=False, ratio=0.95, filters='!"#$%&()*+,
     # stopwords?
     print(a.sort_values(by='count', ascending=False).head(20))
     print("extreme frequent words:", b[b['count'] > 50000])
-    return int(cut_index), a.sort_values(by='count', ascending=False)
+    return int(cut_index)
     # return int(cut_index)+1
 
 

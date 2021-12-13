@@ -244,6 +244,6 @@ def cnn_model_l2(
     return model
 
 
-def visual_textCNN(model):
+def visual_textCNN(model, filename='multichannel-CNN.png'):
     print(model.summary())
     return SVG(model_to_dot(model, dpi=70, show_shapes=True, show_layer_names=True).create(prog='dot', format='svg'))
