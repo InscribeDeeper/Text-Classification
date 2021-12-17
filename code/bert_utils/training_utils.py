@@ -1,5 +1,6 @@
 ### This file prepared is prepared in my previously projects.
 import random
+import matplotlib.pyplot as plt
 import datetime
 import torch
 import numpy as np
@@ -18,6 +19,7 @@ except ImportError:
     print("Append path: ", os.path.abspath(os.path.dirname(__file__)))
     sys.path.append(os.path.abspath(os.path.dirname(__file__)))
     import glovar
+
 
 def setup_seed(seed):
     torch.manual_seed(seed)

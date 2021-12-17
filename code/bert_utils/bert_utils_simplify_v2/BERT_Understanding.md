@@ -1,5 +1,59 @@
-- seq-len 大于200 bert不work了. 
 # Bert 处理代码框架
+
+## RoBERTa
+- Bert 是 undertrain
+- 更多的epochs和数据
+
+## XLNet
+- Relative position embedding 是在这个BERTXL 上最大的改进
+    - Relative attention
+        - 看self-attention依赖的一个词, 同时用非线性结构 把其他词的 attention 也组合起来
+    - Absolute attention
+        - 只看self-attention依赖的一个词
+- Permutation LM
+- train with 更多数据
+
+
+## K-fold
+- 能够将validation set 也用来 train 不会损失数据
+- 能够得到稳定的平均值, 确定 reducable
+## ALBERT
+- share embedding accross all layers
+- embedding projection matrix => decomposition
+- 只是参数更小了, 但是train的速度没有提高
+
+## T5
+- 
+
+## ELECTRA
+- 
+
+## BERT size
+
+-   colab - instance
+-   bert large
+    -   335M parameters, 1024 embed size, 24 layers, 1.3G
+-   bert base
+    -   768 embed size, 12 layers, 110M params, 400 mb
+
+## Distill Version
+- 
+
+## Detail
+
+-   BERT for QA
+    -   在最后一层 都会 multiply [CLS] 并且经过 softmax, 作为 start attention,
+    -   在最后一层 都会 multiply [SEP] 并且经过 softmax, 作为 end attention
+    -   whole word masking -> 不会把词拆分
+-   seq-len 大于 200 bert 的 global pooler output 不 work 了 如果大部分词汇都是空的
+-   padding
+
+    -   attention maks 是用来 ignore 哪些 tokens 的
+
+-   LM
+    -   只考虑 left or right context
+    -   不像 bidirectional, word 可以 see 所有的词, transformer
+    -
 
 ## 精简 example
 
@@ -43,7 +97,6 @@ outputs = model(**inputs)
 # print(b,'\n')
 # print(tokenizer.decode(inputs.input_ids[0]), '\n')
 
-# b = {}
 # for k in outputs.keys():
 #     print(k)
 #     for i, a in enumerate(outputs[k]):
